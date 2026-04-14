@@ -36,6 +36,3 @@ This project is a **Retrieval-Augmented Generation (RAG)** based system that all
 ### PDF Processing
 - PyPDF
 
----
-
-## ⚙️ Architecture
