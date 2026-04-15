@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import StreamingResponse
 import numpy as np
 import ollama
-import json
+import shutil
 from rag_multi_pdf_search_en_mistral import (load_multi_pdf, chunk_with_source, embed_chunks, create_index, search)
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,6 +21,25 @@ docs = load_multi_pdf("data")
 chunks, sources = chunk_with_source(docs)
 vectors = embed_chunks(chunks)
 index = create_index(np.array(vectors))
+
+
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    file_path = f"data/{file.filename}"
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    global index, chunks, sources
+
+    docs = load_multi_pdf("data")
+
+    chunks, sources = chunk_with_source(docs)
+    vectors = embed_chunks(chunks)
+    index = create_index(np.array(vectors))
+
+    return {'message':"File Uploaded successfully"}
 
 
 @app.post("/chat")
