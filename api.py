@@ -18,9 +18,14 @@ app.add_middleware(
 )
 
 docs = load_multi_pdf("data")
-chunks, sources = chunk_with_source(docs)
-vectors = embed_chunks(chunks)
-index = create_index(np.array(vectors))
+
+if not docs:
+    print("⚠️ No PDFs found. System running without knowledge base.")
+    index, chunks, sources = None, [], []
+else:
+    chunks, sources = chunk_with_source(docs)
+    vectors = embed_chunks(chunks)
+    index = create_index(np.array(vectors))
 
 
 
@@ -35,16 +40,22 @@ async def upload_file(file: UploadFile = File(...)):
 
     docs = load_multi_pdf("data")
 
-    chunks, sources = chunk_with_source(docs)
-    vectors = embed_chunks(chunks)
-    index = create_index(np.array(vectors))
+    if  docs:
+        chunks, sources = chunk_with_source(docs)
+        vectors = embed_chunks(chunks)
+        index = create_index(np.array(vectors))
 
-    return {'message':"File Uploaded successfully"}
+        return {'message':"File Uploaded successfully"}
+    else:
+        return {'message':"Error in uploading data"}
 
 
 @app.post("/chat")
 async def chat(req: dict):
     query = req['query']
+
+    if index is None:
+        return {"message": "No documents uploaded yet. Please upload a PDF first."}
 
     res = search(query, index, chunks, sources)
 

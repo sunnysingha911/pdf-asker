@@ -43,8 +43,10 @@ def embed_chunks(chunks):
     return model.encode(chunks)
 
 def create_index(vectors):
-    vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
-    
+    if len(vectors) == 0:
+        return None
+        
+    vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)    
     dim = vectors.shape[1]
     index = faiss.IndexFlatIP(dim)
 

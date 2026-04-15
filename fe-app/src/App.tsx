@@ -9,6 +9,8 @@ type Message = {
 function App() {
   const [input, setInput] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [fileName, setFileName] = useState<string>('');
+  const [uploading, setUploading] = useState(false);
 
   const sendMessage = async () => {
     if (!input) return;
@@ -64,11 +66,11 @@ function App() {
   };
 
   return (
-    <main className="flex flex-col h-screen bg-stone-950 text-stone-100">
+    <main className="flex flex-col h-screen bg-slate-950 text-slate-100">
 
       {/* Header */}
-      <div className="px-6 py-4 border-b border-stone-800">
-        <h2 className="text-xl font-semibold text-amber-400 tracking-tight">
+      <div className="px-6 py-4 border-b border-slate-800">
+        <h2 className="text-xl font-semibold text-blue-400 tracking-tight">
           Rag Chat
         </h2>
       </div>
@@ -78,20 +80,19 @@ function App() {
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"
-              }`}
+            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
               className={`
-              max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed
-              ${msg.role === "user"
+            max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed
+            ${msg.role === "user"
                   ? "bg-blue-600 text-white rounded-br-md"
-                  : "bg-stone-800 text-stone-200 rounded-bl-md"
+                  : "bg-slate-800 text-slate-200 rounded-bl-md"
                 }
-            `}
+          `}
             >
               {msg.content || (
-                <span className="animate-pulse text-stone-400">Typing...</span>
+                <span className="animate-pulse text-slate-400">Typing...</span>
               )}
             </div>
           </div>
@@ -99,24 +100,73 @@ function App() {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-stone-800 p-4 bg-stone-950">
+      <div className="border-t border-slate-800 p-4 bg-slate-950">
         <div className="flex items-center gap-3 max-w-4xl mx-auto">
+
+          {/* 📎 Upload Button */}
+          <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 px-4 py-3 rounded-xl text-sm">
+            📎
+            <input
+              type="file"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                setFileName(file.name);
+                setUploading(true);
+
+                const formData = new FormData();
+                formData.append("file", file);
+
+                try {
+                  await fetch("http://localhost:8000/upload", {
+                    method: "POST",
+                    body: formData,
+                  });
+
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      role: "ai",
+                      content: `✅ Uploaded: ${file.name}`,
+                    },
+                  ]);
+                } catch (err) {
+                  console.error(err);
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
+          </label>
+
+          {/* 🧾 File Name */}
+          {fileName && (
+            <span className="text-xs text-slate-400 truncate max-w-[120px]">
+              {fileName}
+            </span>
+          )}
+
+          {/* 💬 Input */}
           <input
             type="text"
             value={input}
-            placeholder="Type a message..."
-            className="flex-1 bg-stone-900 border border-stone-700 text-stone-100 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-stone-500"
+            placeholder="Ask something about your document..."
+            className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) =>
               e.key === "Enter" ? sendMessage() : undefined
             }
           />
 
+          {/* 🚀 Send Button */}
           <button
-            className="bg-amber-500 hover:bg-amber-400 active:scale-95 text-stone-950 font-semibold px-6 py-3 rounded-xl transition-all"
+            className="bg-blue-500 hover:bg-blue-400 active:scale-95 text-slate-950 font-semibold px-6 py-3 rounded-xl transition-all disabled:opacity-50"
             onClick={sendMessage}
+            disabled={uploading}
           >
-            Send
+            {uploading ? "Uploading..." : "Send"}
           </button>
         </div>
       </div>
