@@ -86,8 +86,8 @@ function App() {
               className={`
             max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed
             ${msg.role === "user"
-                  ? "bg-blue-600 text-white rounded-br-md"
-                  : "bg-slate-800 text-slate-200 rounded-bl-md"
+                  ? "bg-blue-600 text-white rounded-br-md text-right"
+                  : "bg-slate-800 text-slate-200 rounded-bl-md text-left"
                 }
           `}
             >

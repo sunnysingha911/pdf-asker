@@ -5,6 +5,8 @@ import ollama
 import shutil
 from rag_multi_pdf_search_en_mistral import (load_multi_pdf, chunk_with_source, embed_chunks, create_index, search)
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
 
 
 app = FastAPI()
@@ -45,14 +47,25 @@ async def upload_file(file: UploadFile = File(...)):
         vectors = embed_chunks(chunks)
         index = create_index(np.array(vectors))
 
-        return {'message':"File Uploaded successfully"}
-    else:
-        return {'message':"Error in uploading data"}
+        return {'message':"File Uploaded successfully"}    
+
+
+class ChatRequest(BaseModel):
+    query: str
+
+chat_history = []
 
 
 @app.post("/chat")
-async def chat(req: dict):
-    query = req['query']
+async def chat(req: ChatRequest):
+    global chat_history
+
+    query = req.query
+
+    chat_history.append({
+        "role": "user",
+        "content": query
+    })
 
     if index is None:
         return {"message": "No documents uploaded yet. Please upload a PDF first."}
@@ -62,21 +75,44 @@ async def chat(req: dict):
     context = "\n\n".join([
         f"[Source: {src}]\n{chunk}"
         for chunk, src in res
-    ])[:1500]
+    ])[:1200]
+
+    messages = [
+        {
+            "role": "system",
+            "content": f""" 
+                You are a human assistant.
+                Use the context below to answer.
+
+                Context:
+                {context}
+
+                If not found say I dont know
+            """
+        }
+    ] + chat_history[-4:]
 
     def stream():
         try:
-            stream = ollama.chat(
+            response_stream  = ollama.chat(
                 model='mistral',
-                messages=[{
-                    "role": "user",
-                    "content": f"{context}\n\nQuestion: {query}"
-                }],
+                messages=messages,
                 stream=True
             )
 
-            for chunk in stream:
-                yield chunk.get("message",{}).get("content","")
+            full_response = ""            
+
+            for chunk in response_stream:
+                content = chunk.get("message",{}).get("content","")
+                full_response += content
+                yield content
+            
+            chat_history.append({
+                "role": "assistant",
+                "content": full_response
+            })
+
+            chat_history[:] = chat_history[-6:]
         except Exception as e:
             yield "\n[ERROR]: Model crashed. Try smaller query.\n"
         
