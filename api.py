@@ -50,19 +50,31 @@ async def upload_file(file: UploadFile = File(...)):
         return {'message':"File Uploaded successfully"}    
 
 
+@app.get("/health")
+async def check_health():
+    return {"message":"Server is running"}
+
 class ChatRequest(BaseModel):
     query: str
+    session_id: str
 
-chat_history = []
+chat_sessions = {}
 
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
-    global chat_history
+    global chat_sessions
 
     query = req.query
+    session_id = req.session_id
 
-    chat_history.append({
+    if session_id not in chat_sessions:
+        chat_sessions[session_id] = []
+
+    history = chat_sessions[session_id]
+
+
+    history.append({
         "role": "user",
         "content": query
     })
@@ -90,7 +102,7 @@ async def chat(req: ChatRequest):
                 If not found say I dont know
             """
         }
-    ] + chat_history[-4:]
+    ] + history[-4:]
 
     def stream():
         try:
@@ -100,19 +112,19 @@ async def chat(req: ChatRequest):
                 stream=True
             )
 
-            full_response = ""            
+            full_response = ""
 
             for chunk in response_stream:
                 content = chunk.get("message",{}).get("content","")
                 full_response += content
                 yield content
             
-            chat_history.append({
+            history.append({
                 "role": "assistant",
                 "content": full_response
             })
 
-            chat_history[:] = chat_history[-6:]
+            chat_sessions[session_id] = chat_sessions[-6:]
         except Exception as e:
             yield "\n[ERROR]: Model crashed. Try smaller query.\n"
         

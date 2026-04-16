@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import "./App.css";
 
 type Message = {
@@ -11,6 +11,7 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [fileName, setFileName] = useState<string>('');
   const [uploading, setUploading] = useState(false);
+  const sessionId = useRef(crypto.randomUUID())
 
   const sendMessage = async () => {
     if (!input) return;
@@ -29,7 +30,7 @@ function App() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query: userInput }),
+      body: JSON.stringify({ query: userInput, session_id: sessionId?.current }),
     });
 
     if (!res.body) {
