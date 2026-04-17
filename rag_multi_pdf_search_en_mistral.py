@@ -93,18 +93,20 @@ def search(query, index, chunks, sources, k=3):
 
 
 def ask_llm_stream(query, context):
-    prompt = f"""
-You are an assistant. Answer ONLY using the context below.
+    prompt =  f"""
+                You are a helpful assistant.
 
-Context:
-{context}
+                Use markdown in your response.
+                - Use headings
+                - Use bullet points
+                - Use code blocks when needed
 
-Question:
-{query}
+                Context:
+                {context}
 
-If the answer is not in the context, say "I don't know".
-Also mention the source.
-"""
+                Question:
+                {query}
+            """
 
     stream = ollama.chat(
         model="mistral",
